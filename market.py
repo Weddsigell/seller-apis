@@ -1,16 +1,30 @@
 import datetime
-import logging.config
+import logging
 from environs import Env
 from seller import download_stock
-
 import requests
-
 from seller import divide, price_conversion
+
 
 logger = logging.getLogger(__file__)
 
 
 def get_product_list(page, campaign_id, access_token):
+    """
+    Получает список товаров магазина яндекс.
+    
+    Arguments:
+        page (str): Последний id товара, который был получен
+        campaign_id (str): id продавца для работы с api
+        access_token (str): токен магазина для работы с api
+    
+    Returns:
+        dict: Информация о товарах в виде словаря
+        
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -30,6 +44,21 @@ def get_product_list(page, campaign_id, access_token):
 
 
 def update_stocks(stocks, campaign_id, access_token):
+    """
+    Обновляет остатки товаров на яндекс.
+
+    Arguments:
+        stocks (list): список товаров
+        campaign_id (str): id продавца для работы с api
+        access_token (str): токен магазина для работы с api
+
+    Returns:
+        dict: Ответ от api после обновления остатков
+
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -46,6 +75,21 @@ def update_stocks(stocks, campaign_id, access_token):
 
 
 def update_price(prices, campaign_id, access_token):
+    """
+    Обновляет цены товаров на Яндекс.
+
+    Arguments:
+        prices (list): список цен
+        campaign_id (str): id продавца для работы с api
+        access_token (str): токен магазина для работы с api
+
+    Returns:
+        dict: Ответ от api после обновления цен
+
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     endpoint_url = "https://api.partner.market.yandex.ru/"
     headers = {
         "Content-Type": "application/json",
@@ -62,7 +106,17 @@ def update_price(prices, campaign_id, access_token):
 
 
 def get_offer_ids(campaign_id, market_token):
-    """Получить артикулы товаров Яндекс маркета"""
+    """
+    Получить артикулы товаров Яндекс маркета.
+    
+    Arguments:
+        campaign_id (str): id продавца для работы с api
+        market_token (str): токен магазина для работы с api
+    
+    Returns:
+        list: Список товаров продавца
+    """
+        
     page = ""
     product_list = []
     while True:
@@ -78,7 +132,18 @@ def get_offer_ids(campaign_id, market_token):
 
 
 def create_stocks(watch_remnants, offer_ids, warehouse_id):
-    # Уберем то, что не загружено в market
+    """
+    Обновить наличие товара
+
+    Arguments:
+        watch_remnants (list): список товаров на сайте поставщика
+        offer_ids (list): список артиколов на сайте яндекс
+        warehouse_id (str): id склада
+
+    Returns:
+        list: обновленный список товаров
+    """
+    
     stocks = list()
     date = str(datetime.datetime.utcnow().replace(microsecond=0).isoformat() + "Z")
     for watch in watch_remnants:
@@ -123,6 +188,17 @@ def create_stocks(watch_remnants, offer_ids, warehouse_id):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """
+    Берет цены поставщика.
+
+    Arguments:
+        watch_remnants (list): список товаров на сайте поставщика
+        offer_ids (list): список артикулов на сайте яндекс
+
+    Returns:
+        list: список цен на товары
+    """
+    
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -143,6 +219,18 @@ def create_prices(watch_remnants, offer_ids):
 
 
 async def upload_prices(watch_remnants, campaign_id, market_token):
+    """
+    Обновить цены на яндекс маркете.
+    
+    Arguments:
+        watch_remnants (list): список товаров на сайте поставщика
+        campaign_id (str): id продавца для работы с api
+        market_token (str): токен магазина для работы с api
+    
+    Returns:
+        list: список цен на товары        
+    """
+    
     offer_ids = get_offer_ids(campaign_id, market_token)
     prices = create_prices(watch_remnants, offer_ids)
     for some_prices in list(divide(prices, 500)):

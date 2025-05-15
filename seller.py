@@ -12,7 +12,21 @@ logger = logging.getLogger(__file__)
 
 
 def get_product_list(last_id, client_id, seller_token):
-    """Получить список товаров магазина озон"""
+    """
+    Получает список товаров магазина ozon.
+    
+    Arguments:
+        last_id (str): Последний id товара, который был получен
+        client_id (str): id продавца для работы с api
+        seller_token (str): токен магазина для работы с api 
+    
+    Returns:
+        dict: Информация о товарах в виде словаря
+        
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     url = "https://api-seller.ozon.ru/v2/product/list"
     headers = {
         "Client-Id": client_id,
@@ -32,7 +46,17 @@ def get_product_list(last_id, client_id, seller_token):
 
 
 def get_offer_ids(client_id, seller_token):
-    """Получить артикулы товаров магазина озон"""
+    """
+    Получает список артикулов всех товаров магазина Ozon.
+    
+    Arguments:
+        client_id (str): id продавца для работы с api
+        seller_token (str): токен магазина для работы с api 
+    
+    Returns:
+        list: Список товаров продавца
+    """
+    
     last_id = ""
     product_list = []
     while True:
@@ -49,7 +73,21 @@ def get_offer_ids(client_id, seller_token):
 
 
 def update_price(prices: list, client_id, seller_token):
-    """Обновить цены товаров"""
+    """
+    Обновляет цены товаров на Ozon.
+
+    Arguments:
+        prices (list): список цен
+        client_id (str): id продавца для работы с api
+        seller_token (str): токен магазина для работы с api 
+
+    Returns:
+        dict: Ответ от api после обновления цен
+
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     url = "https://api-seller.ozon.ru/v1/product/import/prices"
     headers = {
         "Client-Id": client_id,
@@ -62,7 +100,21 @@ def update_price(prices: list, client_id, seller_token):
 
 
 def update_stocks(stocks: list, client_id, seller_token):
-    """Обновить остатки"""
+    """
+    Обновляет остатки товаров на Ozon.
+
+    Arguments:
+        stocks (list): список товаров
+        client_id (str): id продавца для работы с api
+        seller_token (str): токен магазина для работы с api 
+
+    Returns:
+        dict: Ответ от api после обновления остатков
+
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     url = "https://api-seller.ozon.ru/v1/product/import/stocks"
     headers = {
         "Client-Id": client_id,
@@ -75,8 +127,16 @@ def update_stocks(stocks: list, client_id, seller_token):
 
 
 def download_stock():
-    """Скачать файл ostatki с сайта casio"""
-    # Скачать остатки с сайта
+    """
+    Скачать остатки товара с сайта casio
+
+    Returns:
+        list: список остатков
+
+    Raises:
+        requests.exceptions.HTTPError: При ошибке HTTP запроса
+    """
+    
     casio_url = "https://timeworld.ru/upload/files/ostatki.zip"
     session = requests.Session()
     response = session.get(casio_url)
@@ -96,7 +156,17 @@ def download_stock():
 
 
 def create_stocks(watch_remnants, offer_ids):
-    # Уберем то, что не загружено в seller
+    """
+    Обновить наличие товара
+
+    Arguments:
+        watch_remnants (list): список товаров на сайте поставщика
+        offer_ids (list): список артиколов на сайте ozon
+
+    Returns:
+        list: обновленный список товаров
+    """
+    
     stocks = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -105,10 +175,10 @@ def create_stocks(watch_remnants, offer_ids):
                 stock = 100
             elif count == "1":
                 stock = 0
-            else:
-                stock = int(watch.get("Количество"))
-            stocks.append({"offer_id": str(watch.get("Код")), "stock": stock})
-            offer_ids.remove(str(watch.get("Код")))
+        else:
+            stock = int(watch.get("Количество"))
+        stocks.append({"offer_id": str(watch.get("Код")), "stock": stock})
+        offer_ids.remove(str(watch.get("Код")))
     # Добавим недостающее из загруженного:
     for offer_id in offer_ids:
         stocks.append({"offer_id": offer_id, "stock": 0})
@@ -116,6 +186,17 @@ def create_stocks(watch_remnants, offer_ids):
 
 
 def create_prices(watch_remnants, offer_ids):
+    """
+    Берет цены поставщика.
+
+    Arguments:
+        watch_remnants (list): список товаров на сайте поставщика
+        offer_ids (list): список артикулов на сайте ozon
+
+    Returns:
+        list: список цен на товары
+    """
+    
     prices = []
     for watch in watch_remnants:
         if str(watch.get("Код")) in offer_ids:
@@ -131,12 +212,36 @@ def create_prices(watch_remnants, offer_ids):
 
 
 def price_conversion(price: str) -> str:
-    """Преобразовать цену. Пример: 5'990.00 руб. -> 5990"""
+    """
+    Преобразует цену в число.
+    
+    Arguments:
+        price (str): цена в виде строки с ненужными символами
+    
+    Returns:
+        str: Цена в виде строки без ненужных символов
+
+    Examples:
+        >>> price='5'990.00 руб.'
+        >>> func(price)
+        '5990'
+    """
+    
     return re.sub("[^0-9]", "", price.split(".")[0])
 
 
 def divide(lst: list, n: int):
-    """Разделить список lst на части по n элементов"""
+    """
+    Разделить список lst на части по n элементов.
+
+    Arguments:
+        lst (list): список
+        n (int): кол-во элементов
+
+    Returns:
+        list: часть списка с n элементов
+    """
+    
     for i in range(0, len(lst), n):
         yield lst[i : i + n]
 
